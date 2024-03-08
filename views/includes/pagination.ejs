@@ -1,8 +1,5 @@
 <section class="pagination">
-  <a
-    href="http://localhost:3000/admin/products?page=<%=curPage-1%>"
-    class="<%=hasPrev ? 'prev' : 'prev null'%>"
-  >
+  <a href="?page=<%=curPage-1%>" class="<%=hasPrev ? 'prev' : 'prev null'%>">
     Previous
   </a>
   <% if(curPage!=1){%>
@@ -15,9 +12,7 @@
   <a href="?page=<%=lastPage%>">Last</a>
 
   <%}%>
-  <a
-    href="http://localhost:3000/admin/products?page=<%=curPage+1%>"
-    class="<%=hasNext ? 'next' : 'next null'%>"
+  <a href="?page=<%=curPage+1%>" class="<%=hasNext ? 'next' : 'next null'%>"
     >Next</a
   >
 </section>

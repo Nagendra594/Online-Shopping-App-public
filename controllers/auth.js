@@ -321,7 +321,7 @@ exports.postResetUser = (req, res, next) => {
                 subject: "Password reset",
                 html: `
             <p>You requested to reset the password</p>
-            <p>Click this <a href="http://localhost:3000/resetUser/${token}">link</a> to reset the password</p>
+            <p>Click this <a href="https://online-shopping-app-j9ue.onrender.com/resetUser/${token}">link</a> to reset the password</p>
           `,
               })
               .catch((err) => {
@@ -375,7 +375,7 @@ exports.postResetAdmin = (req, res, next) => {
                 subject: "Password reset",
                 html: `
             <p>You requested to reset the password</p>
-            <p>Click this <a href="http://localhost:3000/resetAdmin/${token}">link</a> to reset the password</p>
+            <p>Click this <a href="https://online-shopping-app-j9ue.onrender.com/resetAdmin/${token}">link</a> to reset the password</p>
           `,
               })
               .catch((err) => {
