@@ -14,7 +14,6 @@ exports.getAddProduct = (req, res, next) => {
 };
 
 exports.postAddProduct = (req, res, next) => {
-  console.log("........................");
   const title = req.body.title;
   const image = req.file;
   const price = req.body.price;
@@ -49,7 +48,6 @@ exports.postAddProduct = (req, res, next) => {
       return res.redirect("/admin/products");
     })
     .catch((err) => {
-      console.log(err);
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
