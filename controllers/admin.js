@@ -1,7 +1,18 @@
 const Product = require("../models/product");
 const User = require("../models/user");
-const fileManager = require("../util/file");
+const s3 = require("../util/AwsS3");
+const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
 const { validationResult } = require("express-validator");
+
+//deletion of image in S3;
+const deleteImageInS3 = (key) => {
+  const deletParams = {
+    Bucket: "onlineapp",
+    Key: key,
+  };
+  const deleteCommand = new DeleteObjectCommand(deletParams);
+  s3.send(deleteCommand);
+};
 exports.getAddProduct = (req, res, next) => {
   res.render("admin/edit-product", {
     pageTitle: "Add Product",
@@ -38,7 +49,7 @@ exports.postAddProduct = (req, res, next) => {
   }
   const product = new Product({
     title: title,
-    imageUrl: image.path,
+    imageUrl: image.key,
     price: price,
     description: description,
   });
@@ -111,8 +122,8 @@ exports.postEditProduct = (req, res, next) => {
       product.price = updatedPrice;
       product.description = updatedDesc;
       if (updatedImage) {
-        fileManager.deleteFile(product.imageUrl);
-        product.imageUrl = updatedImage.path;
+        deleteImageInS3(product.imageUrl);
+        product.imageUrl = updatedImage.key;
       }
       return product.save();
     })
@@ -166,7 +177,7 @@ exports.postDeleteProduct = (req, res, next) => {
       if (!product) {
         return new Error("No product Found!");
       }
-      fileManager.deleteFile(product.imageUrl);
+      deleteImageInS3(product.imageUrl);
       return Product.findByIdAndDelete(prodId);
     })
     .then(() => {

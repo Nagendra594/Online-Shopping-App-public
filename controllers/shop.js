@@ -1,8 +1,8 @@
 const Product = require("../models/product");
 const Order = require("../models/order");
-const fs = require("fs");
 const PdfDocument = require("pdfkit");
-const path = require("path");
+const s3 = require("../util/AwsS3");
+const { PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 let items_per_page = 3;
 exports.getProducts = (req, res, next) => {
   let pageNo = +req.query.page;
@@ -157,19 +157,38 @@ exports.getCheckout = (req, res, next) => {
     });
 };
 exports.postOrder = (req, res, next) => {
+  const pdfDoc = new PdfDocument();
+  const invoiceStore = [];
+  let orderId;
+  pdfDoc.on("data", (chunk) => invoiceStore.push(chunk));
+  pdfDoc.fontSize(26).text("INVOICE");
+  pdfDoc.text("------------------------------");
+  let totalPrice = 0;
   req.user
     .populate("cart.items.productId")
     .then((userData) => {
       const products = userData.cart.items.map((i) => {
+        totalPrice += i.quantity * i.productId.price;
+        pdfDoc
+          .fontSize(12)
+          .text(
+            `${i.productId.title} - ${i.quantity} X ${i.productId.price} = ${
+              i.quantity * i.productId.price
+            }`
+          );
         return { quantity: i.quantity, product: { ...i.productId } };
       });
+      pdfDoc.text("----");
+      pdfDoc.fontSize(20).text(`Total Price = $${totalPrice}`);
       const order = new Order({
         user: req.user,
         items: products,
       });
       return order.save();
     })
-    .then(() => {
+    .then((orderDoc) => {
+      orderId = orderDoc._id;
+      pdfDoc.end();
       return req.user.clearCart();
     })
     .then(() => {
@@ -180,6 +199,21 @@ exports.postOrder = (req, res, next) => {
       error.httpStatusCode = 500;
       return next(error);
     });
+  pdfDoc.on("end", () => {
+    const pdf = Buffer.concat(invoiceStore);
+    const uploadParams = {
+      Bucket: "onlineapp",
+      Key: "invoices/" + orderId + ".pdf", // Replace with the desired S3 key
+      Body: pdf,
+      ContentType: "application/pdf",
+    };
+    try {
+      const uploadCommand = new PutObjectCommand(uploadParams);
+      s3.send(uploadCommand);
+    } catch (err) {
+      next(err);
+    }
+  });
 };
 
 exports.getOrders = (req, res, next) => {
@@ -208,27 +242,21 @@ exports.getInvoice = (req, res, next) => {
       if (order.user.toString() !== req.user._id.toString()) {
         return next(new Error("Unauthorized"));
       }
-      const fileName = "invoice-" + orderID + ".pdf";
-      const filePath = path.join("data", fileName);
-      const pdfDoc = new PdfDocument();
-      pdfDoc.pipe(fs.createWriteStream(filePath));
-      pdfDoc.pipe(res);
-      pdfDoc.fontSize(26).text("INVOICE");
-      pdfDoc.text("------------------------------");
-      let totalPrice = 0;
-      order.items.forEach((item) => {
-        totalPrice += item.quantity * item.product.price;
-        pdfDoc
-          .fontSize(12)
-          .text(
-            `${item.product.title} - ${item.quantity} X ${
-              item.product.price
-            } = ${item.quantity * item.product.price}`
-          );
-      });
-      pdfDoc.text("----");
-      pdfDoc.fontSize(20).text(`Total Price = $${totalPrice}`);
-      pdfDoc.end();
+      const key = "invoices/" + orderID + ".pdf";
+      const getParams = {
+        Bucket: "onlineapp",
+        Key: key,
+      };
+      const getCommand = new GetObjectCommand(getParams);
+      return s3.send(getCommand);
+    })
+    .then((result) => {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        'inline; filename="' + orderID + ".pdf"
+      );
+      result.Body.pipe(res);
     })
     .catch((err) => {
       next(err);

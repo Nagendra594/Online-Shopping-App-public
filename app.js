@@ -1,6 +1,5 @@
 /* we need path module for avoiding the errors related to paths with respect to OS. It will detect on which OS you are running the applicaion, then according the result it will automatically modify the path structure. like for windows("\") for macOS("/");*/
 const path = require("path");
-const fs = require("fs");
 
 /*mongoose is library for mongoDb database. MongoDb is a dataBase which is not structured. it works with collections. Collections called as schemas*/
 const mongoose = require("mongoose");
@@ -13,6 +12,8 @@ const bodyParser = require("body-parser");
 
 /* multer is a module which is used to extracts the files from post requests*/
 const multer = require("multer");
+const multerS3 = require("multer-s3");
+const s3 = require("./util/AwsS3");
 
 /* */
 const session = require("express-session");
@@ -26,17 +27,22 @@ const morgan = require("morgan");
 const mongoDbUri = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_USER_PASS}@onlineapp.clluxz5.mongodb.net/${process.env.MONGO_DATABASE}`;
 const app = express();
 app.use(helmet());
-const logWriteStream = fs.createWriteStream(
-  path.join(__dirname, "access.log"),
-  { flags: "a" }
+app.use(
+  helmet.contentSecurityPolicy({
+    useDefaults: true,
+    directives: {
+      "img-src": ["'self'", "https: data:"],
+    },
+  })
 );
-app.use(morgan("combined", { stream: logWriteStream }));
-const fileStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "images");
-  },
-  filename: (req, file, cb) => {
-    cb(null, file.originalname);
+
+app.use(morgan());
+const fileStorage = multerS3({
+  s3: s3,
+  bucket: "onlineapp",
+  acl: "public-read",
+  key: function (req, file, cb) {
+    cb(null, "uploads/" + Date.now() + "-" + file.originalname);
   },
 });
 const filter = (req, file, cb) => {
