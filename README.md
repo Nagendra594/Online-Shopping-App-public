@@ -5,4 +5,4 @@
 - Delve into the implementation of thorough error handling and validation mechanisms, enhancing the user experience. Gain insights into how these components contribute to the application's reliability, allowing for seamless interaction while maintaining data integrity.
 
 
-**<p align='center' style="font-size:24px">You can find the website live <a href="https://online-shopping-app-j9ue.onrender.com/">here</a></p>**
+**<p align='center'>You can find the website live <a href="https://online-shopping-app-j9ue.onrender.com/">here</a></p>**
