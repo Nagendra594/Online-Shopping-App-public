@@ -30,8 +30,11 @@ app.use(helmet());
 app.use(
   helmet.contentSecurityPolicy({
     useDefaults: true,
+  
     directives: {
       "img-src": ["'self'", "http: data:"],
+      defaultSrc:["'self'", "http:"],
+      styleSrc:["'self'","http:"]
     },
   })
 );
